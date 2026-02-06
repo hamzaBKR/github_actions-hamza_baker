@@ -1,0 +1,10 @@
+name: test action
+on: workflow_dispatch
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+        -   name: test
+            uses: actions/checkout@v3
+
+
