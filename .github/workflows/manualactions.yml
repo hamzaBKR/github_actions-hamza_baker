@@ -1,14 +1,27 @@
-name: test action
-on: 
-    schedule:
-    -  cron: '*/3 * * * *' 
+name: Scheduled Test Action
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Every 5 minutes (GitHub minimum)
+  workflow_dispatch:  # Allows manual triggering from GitHub UI
+
 jobs:
-    test:
-        runs-on: ubuntu-latest
-        steps:
-        -   name: test
-            uses: actions/checkout@v3
-        -   name: echo date
-            run: "echo the time of trigger run $(date -u)"
-
-
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Display trigger time
+        run: |
+          echo "======================================="
+          echo "Workflow triggered at: $(date -u)"
+          echo "Timezone: UTC"
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "======================================="
+      
+      - name: Show system info
+        run: |
+          echo "Runner OS: $(uname -s)"
+          echo "Runner: ${{ runner.os }}"
