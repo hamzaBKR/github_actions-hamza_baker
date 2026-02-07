@@ -1,0 +1,20 @@
+name: new issue
+
+on: issues
+
+jobs:
+  test_issue:  # Job name first
+    runs-on: ubuntu-latest  # Then runs-on
+    steps:
+      - name: Auto-label bug
+        if: contains(github.event.issue.title, 'bug')
+        run: gh issue edit ${{ github.event.issue.number }} --add-label "bug"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Required for gh CLI
+
+      - name: Notify team
+        run: |
+          curl -X POST $SLACK_WEBHOOK \
+            -d '{"text": "New issue: ${{ github.event.issue.title }}"}'  # Fixed: removed extra dash, added JSON format
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}  # Add your webhook to repo secrets
