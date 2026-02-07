@@ -12,9 +12,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Required for gh CLI
 
-      - name: Notify team
-        run: |
-          curl -X POST $SLACK_WEBHOOK \
-            -d '{"text": "New issue: ${{ github.event.issue.title }}"}'  # Fixed: removed extra dash, added JSON format
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}  # Add your webhook to repo secrets
+ 
