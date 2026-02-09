@@ -2,9 +2,9 @@ name: test_variable
 on: push
 jobs:
     print:
-        env:
-            test: variables
         runs-on: ubuntu-latest
+        env:
+            test: variables   
         steps:
             - name: test variable
-              run: echo 'test ${{env.test}}''
+              run: echo 'test ${{env.test}}'
