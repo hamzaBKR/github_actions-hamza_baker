@@ -1,0 +1,10 @@
+name: test_variable
+on: push
+jobs:
+    print:
+        env:
+            test: variables
+        runs-on: ubuntu-latest
+        steps:
+            - name: test variable
+              run: echo 'test ${{env.test}}''
