@@ -1,0 +1,14 @@
+name: test variables
+on: 
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+jobs:
+  print:
+    runs-on: ubuntu-latest
+    env:
+      name: variables
+    steps:
+      - name: print variables
+        run: echo 'this is a variables ${{env.name}}'
