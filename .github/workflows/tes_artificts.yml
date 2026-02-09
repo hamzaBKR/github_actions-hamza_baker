@@ -1,0 +1,27 @@
+name: test artifacts
+on: push
+jobs:
+  test_upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create test file
+        run: echo "this is first line" >> test.txt
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: upload_file
+          path: test.txt
+  
+  test_download:
+    runs-on: ubuntu-latest
+    needs: test_upload
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: upload_file
+          path: ./downloaded
+      
+      - name: Display downloaded file
+        run: cat ./downloaded/test.txt
