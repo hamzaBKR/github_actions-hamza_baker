@@ -1,0 +1,14 @@
+name: test job outputs
+on: [push]
+jobs:
+    job1:
+        runs-on: ubuntu-latest
+        outputs:
+            myoutput: ${{ steps.my_id.outputs.myoutput }}
+        steps:
+            - name: test
+              id: my_id
+              run: |
+               echo "this is my outputs ${{steps.my_id.outputs.myoutput}}"
+
+
