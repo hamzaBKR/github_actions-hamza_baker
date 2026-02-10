@@ -20,7 +20,7 @@ jobs:
       - name: download artifact
         uses: actions/download-artifact@v5
         with:
-          name: test1
+          name: test-artifact
 
       - name: list file
         run: cat test1.txt
