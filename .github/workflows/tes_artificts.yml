@@ -8,7 +8,7 @@ jobs:
         run: |
           echo "123456" > test1.txt
       - name: use artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: test-artifact
           path: test1.txt
@@ -18,7 +18,7 @@ jobs:
     needs: job1
     steps:
       - name: download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: test1
 
