@@ -9,6 +9,9 @@ jobs:
             - name: test
               id: my_id
               run: |
-               echo "this is my outputs ${{steps.my_id.outputs.myoutput}}"
+               echo "myoutput=testonly" >> $GITHUB_OUTPUT
+            - name: use output
+              run: |
+               echo "this is my outputs ${{ steps.my_id.outputs.myoutput }}"
 
 
