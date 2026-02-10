@@ -1,27 +1,26 @@
-name: test artifacts
-on: push
+name: artifacts
+on: [push,workflow_dispatch]
 jobs:
-  test_upload:
-    runs-on: ubuntu-latest
+  job1:
+    runs-on: ubuntu-latest  
     steps:
-      - name: Create test file
-        run: echo "this is first line" >> test.txt
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: create file and use it for artifacts
+        run: |
+          echo "123456" > test1.txt
+      - name: use artifacts
+        uses: actions/upload-artifact@v3
         with:
-          name: upload_file
-          path: test.txt
-  
-  test_download:
+          name: test-artifact
+          path: test1.txt
+
+  job2:
     runs-on: ubuntu-latest
-    needs: test_upload
+    needs: job1
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: download artifact
+        uses: actions/download-artifact@v3
         with:
-          name: upload_file
-          path: ./downloaded
-      
-      - name: Display downloaded file
-        run: cat ./downloaded/test.txt
+          name: test1
+
+      - name: list file
+        run: cat test1.txt
