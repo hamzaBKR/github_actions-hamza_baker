@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  scraper:
+    build: .
+    container_name: web-scraper
+    volumes:
+      - ./results:/app/results
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Run scraper and save results to mounted volume
+    command: sh -c "python scraper.py && cp results.json /app/results/"
+  
+  # Example: Add a database service for storing results
+  postgres:
+    image: postgres:15-alpine
+    container_name: scraper-db
+    environment:
+      POSTGRES_USER: scraper
+      POSTGRES_PASSWORD: scraper_pass
+      POSTGRES_DB: scraping_data
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

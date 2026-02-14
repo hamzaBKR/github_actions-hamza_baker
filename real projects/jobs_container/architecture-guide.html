@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Actions Container Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #718096;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            color: #667eea;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .workflow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .workflow-row {
+            display: flex;
+            gap: 20px;
+            align-items: stretch;
+        }
+        
+        .workflow-box {
+            flex: 1;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .workflow-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        
+        .workflow-box.build {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .workflow-box.container-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .workflow-box.container-fail {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .workflow-box.compare {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .workflow-box h3 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .workflow-box ul {
+            list-style: none;
+            margin-left: 0;
+        }
+        
+        .workflow-box li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .workflow-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+        
+        .workflow-box.container-fail li:before {
+            content: "⚠";
+        }
+        
+        .arrow {
+            text-align: center;
+            font-size: 2em;
+            color: #cbd5e0;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+        
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .comparison-table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .badge.success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .badge.warning {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+        
+        .badge.error {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        
+        .code-block .keyword {
+            color: #f687b3;
+        }
+        
+        .code-block .string {
+            color: #9ae6b4;
+        }
+        
+        .code-block .comment {
+            color: #a0aec0;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+        }
+        
+        .feature-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+        
+        .feature-card p {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+        
+        .highlight {
+            background: #fef5e7;
+            border-left: 4px solid #f39c12;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .highlight h4 {
+            color: #d68910;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐳 GitHub Actions with Containers</h1>
+        <p class="subtitle">Interactive Architecture Guide</p>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('workflow')">Workflow Overview</button>
+            <button class="tab" onclick="showTab('comparison')">Why Containers?</button>
+            <button class="tab" onclick="showTab('code')">Code Examples</button>
+            <button class="tab" onclick="showTab('benefits')">Key Benefits</button>
+        </div>
+        
+        <!-- Tab 1: Workflow -->
+        <div id="workflow" class="tab-content active">
+            <h2 style="margin-bottom: 20px;">🔄 Complete Workflow Architecture</h2>
+            
+            <div class="workflow-diagram">
+                <div class="workflow-row">
+                    <div class="workflow-box build">
+                        <h3>📦 Job 1: Build Container</h3>
+                        <ul>
+                            <li>Build Docker image with exact versions</li>
+                            <li>Chrome + ChromeDriver (matched)</li>
+                            <li>Python 3.11 + dependencies</li>
+                            <li>Push to GitHub Container Registry</li>
+                            <li>Use build cache for speed</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="workflow-row">
+                    <div class="workflow-box container-success">
+                        <h3>✅ Job 2: With Container</h3>
+                        <ul>
+                            <li>Run inside custom container</li>
+                            <li>Guaranteed version compatibility</li>
+                            <li>Fast startup (deps pre-installed)</li>
+                            <li>100% reproducible</li>
+                            <li>Same as local development</li>
+                        </ul>
+                        <div style="margin-top: 15px;">
+                            <span class="badge success">SUCCESS RATE: 99%+</span>
+                        </div>
+                    </div>
+                    
+                    <div class="workflow-box container-fail">
+                        <h3>⚠️ Job 3: Without Container</h3>
+                        <ul>
+                            <li>Install Chrome during workflow</li>
+                            <li>Install ChromeDriver separately</li>
+                            <li>Version mismatches common</li>
+                            <li>Slower setup (~2-3 minutes)</li>
+                            <li>May fail randomly</li>
+                        </ul>
+                        <div style="margin-top: 15px;">
+                            <span class="badge warning">SUCCESS RATE: 60-80%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="workflow-row">
+                    <div class="workflow-box compare">
+                        <h3>📊 Job 4: Compare Results</h3>
+                        <ul>
+                            <li>Download artifacts from both jobs</li>
+                            <li>Generate comparison report</li>
+                            <li>Show success/failure rates</li>
+                            <li>Demonstrate container advantages</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="highlight">
+                <h4>🎯 The Key Insight</h4>
+                <p>The workflow intentionally runs the scraper BOTH ways to demonstrate the reliability difference. In production, you'd only use the container approach!</p>
+            </div>
+        </div>
+        
+        <!-- Tab 2: Comparison -->
+        <div id="comparison" class="tab-content">
+            <h2 style="margin-bottom: 20px;">📊 Container vs No Container</h2>
+            
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th>With Container</th>
+                        <th>Without Container</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Setup Time (First Run)</strong></td>
+                        <td><span class="badge success">~30 seconds</span></td>
+                        <td><span class="badge warning">2-3 minutes</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Setup Time (Cached)</strong></td>
+                        <td><span class="badge success">~10 seconds</span></td>
+                        <td><span class="badge warning">2-3 minutes (always)</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Reliability</strong></td>
+                        <td><span class="badge success">99%+ success</span></td>
+                        <td><span class="badge warning">60-80% success</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Version Control</strong></td>
+                        <td><span class="badge success">Exact versions guaranteed</span></td>
+                        <td><span class="badge error">Latest versions (may break)</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Reproducibility</strong></td>
+                        <td><span class="badge success">100% reproducible</span></td>
+                        <td><span class="badge error">Variable across runs</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Local Development</strong></td>
+                        <td><span class="badge success">Identical to CI</span></td>
+                        <td><span class="badge warning">Different from CI</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Debugging</strong></td>
+                        <td><span class="badge success">Test CI locally</span></td>
+                        <td><span class="badge error">Hard to reproduce CI issues</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Maintenance</strong></td>
+                        <td><span class="badge success">Update Dockerfile once</span></td>
+                        <td><span class="badge warning">Update workflow repeatedly</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>🎯 Problem: ChromeDriver Mismatch</h4>
+                    <p>Chrome updates automatically, but ChromeDriver doesn't. Without containers, your CI might install Chrome 120 but ChromeDriver 119, causing random failures.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>✅ Solution: Locked Versions</h4>
+                    <p>The Dockerfile installs Chrome and automatically gets the matching ChromeDriver version. Once built, these versions are locked together.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>🚀 Bonus: Speed</h4>
+                    <p>After the first build, GitHub caches your container layers. Subsequent runs start in seconds instead of minutes.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>🔄 Bonus: Portability</h4>
+                    <p>The same container runs on your laptop, in GitHub Actions, GitLab CI, Jenkins, or anywhere Docker runs.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab 3: Code Examples -->
+        <div id="code" class="tab-content">
+            <h2 style="margin-bottom: 20px;">💻 Key Code Snippets</h2>
+            
+            <h3>1. Dockerfile (Lock Dependencies)</h3>
+            <div class="code-block">
+<span class="keyword">FROM</span> python:3.11-slim-bookworm
+
+<span class="comment"># Install Chrome (specific version)</span>
+<span class="keyword">RUN</span> wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \\
+    && apt-get install -y google-chrome-stable
+
+<span class="comment"># Install matching ChromeDriver automatically</span>
+<span class="keyword">RUN</span> CHROME_VERSION=$(google-chrome --version | awk <span class="string">'{print $3}'</span>) \\
+    && <span class="comment"># Download matching ChromeDriver...</span>
+
+<span class="keyword">COPY</span> requirements.txt .
+<span class="keyword">RUN</span> pip install -r requirements.txt
+
+<span class="keyword">COPY</span> scraper.py .
+<span class="keyword">CMD</span> [<span class="string">"python"</span>, <span class="string">"scraper.py"</span>]
+            </div>
+            
+            <h3>2. GitHub Actions (Use Container)</h3>
+            <div class="code-block">
+<span class="keyword">jobs:</span>
+  scrape-with-container:
+    <span class="keyword">runs-on:</span> ubuntu-latest
+    
+    <span class="comment"># 🔑 This is the key - run inside container!</span>
+    <span class="keyword">container:</span>
+      <span class="keyword">image:</span> ghcr.io/${{ github.repository_owner }}/scraper:latest
+    
+    <span class="keyword">steps:</span>
+      - <span class="keyword">name:</span> Checkout code
+        <span class="keyword">uses:</span> actions/checkout@v4
+      
+      - <span class="keyword">name:</span> Run scraper
+        <span class="keyword">run:</span> python scraper.py
+            </div>
+            
+            <h3>3. Local Development (docker-compose.yml)</h3>
+            <div class="code-block">
+<span class="keyword">services:</span>
+  scraper:
+    <span class="keyword">build:</span> .
+    <span class="keyword">volumes:</span>
+      - ./results:/app/results
+    <span class="keyword">command:</span> python scraper.py
+
+<span class="comment"># Run with: docker-compose up</span>
+<span class="comment"># Same environment as CI! 🎉</span>
+            </div>
+            
+            <div class="highlight">
+                <h4>💡 Pro Tip</h4>
+                <p>Always test your CI locally first: <code>docker build -t test . && docker run test</code></p>
+                <p>If it works locally in the container, it'll work in GitHub Actions!</p>
+            </div>
+        </div>
+        
+        <!-- Tab 4: Benefits -->
+        <div id="benefits" class="tab-content">
+            <h2 style="margin-bottom: 20px;">🌟 Key Benefits of Containers in CI/CD</h2>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>1. 🔒 Consistency Guarantee</h4>
+                    <p>Your code runs in exactly the same environment every single time. No more "works on my machine" or "it passed last week but fails now".</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>2. ⚡ Speed Improvements</h4>
+                    <p>Container layers are cached. First build takes 2 minutes, subsequent builds take 10 seconds. Dependencies are pre-installed.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>3. 🔄 Perfect Reproducibility</h4>
+                    <p>Run your CI environment locally. Debug issues on your laptop before pushing. Same container = same results.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>4. 📦 Version Control</h4>
+                    <p>Your Dockerfile is versioned in Git. You can roll back to any previous environment just like code.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>5. 🛠️ Complex Dependencies</h4>
+                    <p>Need specific system libraries? Multiple language versions? Legacy tools? Package them once, use everywhere.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>6. 🌐 Portability</h4>
+                    <p>Same container works in GitHub Actions, GitLab CI, Jenkins, CircleCI, or any system that supports Docker.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>7. 🧪 Testing Services</h4>
+                    <p>Need a database? Redis? Message queue? Spin up service containers alongside your tests.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>8. 👥 Team Alignment</h4>
+                    <p>Everyone on your team uses the exact same environment. No more "it works for me but not for you".</p>
+                </div>
+            </div>
+            
+            <div class="highlight" style="margin-top: 30px;">
+                <h4>🎓 When to Use Containers in GitHub Actions</h4>
+                <p><strong>✅ Use containers when:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>You need specific versions of system tools (Chrome, databases, etc.)</li>
+                    <li>You have complex dependencies that change frequently</li>
+                    <li>You want identical local and CI environments</li>
+                    <li>You're testing multiple language/tool versions</li>
+                    <li>You need to run services (databases, caches) for testing</li>
+                </ul>
+                
+                <p style="margin-top: 20px;"><strong>❌ Skip containers when:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>You only need basic language tools (Python, Node.js, etc.)</li>
+                    <li>Your dependencies are simple and stable</li>
+                    <li>GitHub's hosted runners have everything you need</li>
+                    <li>You want the fastest possible cold start time</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

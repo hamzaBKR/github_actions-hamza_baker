@@ -1,0 +1,90 @@
+version: '3.8'
+
+# This is for LOCAL DEVELOPMENT
+# Mirrors the service containers used in GitHub Actions
+
+services:
+  # Your application
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Use service names as hostnames (same as GitHub Actions)
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: testpass
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+
+  # PostgreSQL database (matches GitHub Actions service)
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: ecommerce
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache (matches GitHub Actions service)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  # Optional: Redis Commander for cache management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+
+# Usage:
+# Start everything:     docker-compose up
+# Run tests:            docker-compose run app pytest test_app.py -v
+# View logs:            docker-compose logs -f app
+# Stop everything:      docker-compose down
+# Reset database:       docker-compose down -v
+
+# Access points:
+# - API: http://localhost:8000
+# - API Docs: http://localhost:8000/docs
+# - pgAdmin: http://localhost:5050
+# - Redis Commander: http://localhost:8081
