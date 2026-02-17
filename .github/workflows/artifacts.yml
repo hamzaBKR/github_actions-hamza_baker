@@ -19,6 +19,6 @@ jobs:
         - uses: actions/download-artifact@v5
           with:
                 name: my-artifact
-                path: path/to/artifact/world.txt
+                path: path/to/artifact
         - name: Display structure of downloaded files
           run: cat path/to/artifact/world.txt
