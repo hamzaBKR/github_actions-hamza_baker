@@ -1,0 +1,19 @@
+name: jobs outputs
+on: [push]
+jobs:
+    jobs1:
+        runs-on: ubuntu-latest
+        outputs:
+            outputs_hamza: ${{ steps.id_ooutput.outputs.outputs }}
+        steps:
+            - name: step-1
+              id: id_ooutput
+              run: |
+               echo "outputs=testoutputs" >> $GITHUB_OUTPUT
+    jobs2:
+        runs-on: ubuntu-latest
+        needs: jobs1
+        steps:
+            - name: step-2
+              run: |
+               echo "this is my outputs from jobs1 ${{ needs.jobs1.outputs.outputs_hamza }}"
